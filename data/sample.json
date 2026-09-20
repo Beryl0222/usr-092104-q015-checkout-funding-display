@@ -1,0 +1,9 @@
+{
+  "event_id": "sample-015",
+  "event_type": "POLICY_PUBLISHED",
+  "aggregate_type": "funding_channel",
+  "aggregate_id": "aggregate-015",
+  "occurred_at": "2026-09-20T12:00:00+08:00",
+  "version": 1,
+  "summary": "收银台渠道解释领域样例"
+}
