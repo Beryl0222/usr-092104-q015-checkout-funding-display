@@ -20,11 +20,13 @@
       "type": "string",
       "enum": [
         "POLICY_PUBLISHED",
+        "POLICY_ROLLED_BACK",
         "SESSION_COMPOSED",
         "CHANNEL_SELECTED",
         "PAYMENT_CONFIRMED",
-        "POLICY_ROLLED_BACK"
-      ]
+        "SETTLEMENT_RECORDED"
+      ],
+      "description": "POLICY_* 与 SESSION_COMPOSED 只决定可展示方式；CHANNEL_SELECTED 必须来自用户主动动作；PAYMENT_CONFIRMED 冻结当次规则版本；SETTLEMENT_RECORDED 对同一订单至多一次。"
     },
     "aggregate_type": {
       "type": "string",

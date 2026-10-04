@@ -1,0 +1,232 @@
+{
+  "funding_channels": [
+    {
+      "channel_id": "card_debit_6228",
+      "kind": "bank_card",
+      "nature": "own_funds",
+      "name": "招商银行储蓄卡（尾号6228）",
+      "short_name": "储蓄卡",
+      "description": "使用本人银行储蓄卡内的存款支付，资金性质为自有资金。",
+      "requires_grant": false
+    },
+    {
+      "channel_id": "acct_balance",
+      "kind": "account_balance",
+      "nature": "own_funds",
+      "name": "账户余额",
+      "short_name": "余额",
+      "description": "使用账户内已充值的余额支付，资金性质为自有资金。",
+      "requires_grant": false
+    },
+    {
+      "channel_id": "money_fund_01",
+      "kind": "money_fund",
+      "nature": "own_funds",
+      "name": "零钱宝货币基金",
+      "short_name": "货币基金",
+      "description": "赎回本人持有的货币基金份额完成支付，本金与收益归本人所有，资金性质为自有资金。",
+      "redemption_note": "支付即赎回等额基金份额，预计T+1日确认，不产生借款。",
+      "requires_grant": false
+    },
+    {
+      "channel_id": "credit_pay",
+      "kind": "consumer_credit",
+      "nature": "credit_product",
+      "name": "信用支付",
+      "short_name": "消费信贷",
+      "description": "由授信方发放消费贷款垫付本笔订单，资金性质为借款，需按约还款。",
+      "requires_grant": true
+    },
+    {
+      "channel_id": "installment_3",
+      "kind": "installment",
+      "nature": "credit_product",
+      "name": "信用支付·分3期",
+      "short_name": "分期",
+      "description": "使用消费授信额度分期偿还本笔订单，资金性质为借款，含分期费用。",
+      "requires_grant": true,
+      "installment_terms": 3
+    }
+  ],
+  "credit_grants": [
+    {
+      "grant_id": "grant_g1",
+      "user_ids": ["u_credit", "u_balance_low"],
+      "channel_ids": ["credit_pay", "installment_3"],
+      "status": "active",
+      "approved_limit_cents": 200000,
+      "available_credit_cents": 150000,
+      "source": "授信核心（外部系统）",
+      "note": "授信由独立授信核心审批；展示规则只能读取，不得替用户申请或批准。"
+    }
+  ],
+  "users": [
+    {
+      "user_id": "u_credit",
+      "name": "已获授信用户",
+      "bank_cards": ["card_debit_6228"],
+      "balance_cents": 25000,
+      "money_fund_shares_cents": 80000
+    },
+    {
+      "user_id": "u_no_credit",
+      "name": "未获授信用户",
+      "bank_cards": ["card_debit_6228"],
+      "balance_cents": 30000,
+      "money_fund_shares_cents": 0
+    },
+    {
+      "user_id": "u_balance_low",
+      "name": "余额不足用户",
+      "bank_cards": ["card_debit_6228"],
+      "balance_cents": 5000,
+      "money_fund_shares_cents": 0
+    }
+  ],
+  "merchants": [
+    { "merchant_id": "m_demo", "name": "参考演示商户" },
+    { "merchant_id": "m_legacy", "name": "旧版合作商户" }
+  ],
+  "orders": [
+    {
+      "order_id": "ord_demo_001",
+      "merchant_id": "m_demo",
+      "amount_cents": 10000,
+      "subject": "合规参考商品（一笔 ¥100.00 的演示订单）",
+      "created_at": "2026-10-04T10:00:00+08:00"
+    },
+    {
+      "order_id": "ord_legacy_001",
+      "merchant_id": "m_legacy",
+      "amount_cents": 10000,
+      "subject": "旧版商户演示订单",
+      "created_at": "2026-10-04T10:00:00+08:00"
+    }
+  ],
+  "policies": [
+    {
+      "policy_id": "checkout_rules",
+      "version": 1,
+      "status": "active",
+      "parent_version": null,
+      "scope": { "merchant_ids": ["*"], "min_app_version": "1.0.0" },
+      "change_note": "新规基线版：支付工具与金融产品分组展示，金融产品不得默认选中。",
+      "channel_order": [
+        "card_debit_6228",
+        "acct_balance",
+        "money_fund_01",
+        "credit_pay",
+        "installment_3"
+      ],
+      "default_channel_id": "card_debit_6228",
+      "sections": {
+        "own_funds": {
+          "title": "支付工具（花您自己的钱）",
+          "description": "以下渠道扣减的是您本人的存款、余额或理财份额，不产生借款。"
+        },
+        "credit_product": {
+          "title": "金融产品（借款，需主动选择）",
+          "description": "以下渠道由授信方垫付，属于贷款或分期，不会被默认选中，请在看清费用与还款责任后自行选择。"
+        }
+      },
+      "channel_copy": {
+        "card_debit_6228": {
+          "tagline": "储蓄卡存款支付",
+          "risk_warning": null,
+          "cancel_consequence": "付款后取消订单将原路退回该储蓄卡，到账时间以银行处理为准。"
+        },
+        "acct_balance": {
+          "tagline": "账户已有余额",
+          "risk_warning": null,
+          "cancel_consequence": "付款后取消订单将退回账户余额，一般实时到账。"
+        },
+        "money_fund_01": {
+          "tagline": "赎回本人持有的基金份额",
+          "risk_warning": "支付即赎回基金份额，T+1日确认；货币基金不等同存款，收益随市场波动。",
+          "cancel_consequence": "取消订单后退款不会自动申购回基金，资金将退至账户余额。"
+        },
+        "credit_pay": {
+          "tagline": "授信方垫付，下月按账单还款",
+          "risk_warning": "这是消费贷款：本笔金额计入借款本金，需在账单到期日前偿还；按时全额还款无额外费用，逾期按合同计收利息并影响征信。",
+          "cancel_consequence": "取消订单且商户退款成功后，对应借款本金由授信方冲抵账单；若退款延迟，仍需先行还款。"
+        },
+        "installment_3": {
+          "tagline": "分3期按月偿还，含分期费用",
+          "risk_warning": "这是分期贷款：总还款额高于订单金额，提前还款可能仍需支付已产生的费用，逾期将计收罚息并影响征信。",
+          "cancel_consequence": "取消订单且商户退款成功后，已入账分期按授信方规则冲抵或退回；分期费用是否退还以合同约定为准。"
+        }
+      },
+      "pricing": {
+        "installment_3": {
+          "annual_rate_bp": 720,
+          "method": "equal_monthly_payment",
+          "rate_description": "年化利率（单利）7.20%，按月计息"
+        }
+      },
+      "published_by": "compliance-office",
+      "published_at": "2026-09-01T09:00:00+08:00"
+    },
+    {
+      "policy_id": "checkout_rules",
+      "version": 2,
+      "status": "active",
+      "parent_version": 1,
+      "scope": { "merchant_ids": ["m_demo"], "min_app_version": "2.1.0" },
+      "change_note": "灰度版：自有资金优先按就近使用排序，强化金融产品风险提示与费用明细；仅对 m_demo 商户、客户端 2.1.0 及以上生效。",
+      "channel_order": [
+        "acct_balance",
+        "money_fund_01",
+        "card_debit_6228",
+        "credit_pay",
+        "installment_3"
+      ],
+      "default_channel_id": "acct_balance",
+      "sections": {
+        "own_funds": {
+          "title": "支付工具（花您自己的钱）",
+          "description": "以下渠道扣减的是您本人的存款、余额或理财份额，不产生借款。"
+        },
+        "credit_product": {
+          "title": "金融产品（借款，需主动选择）",
+          "description": "以下渠道由授信方垫付，属于贷款或分期，不会被默认选中，请在看清总费用与还款责任后自行选择。"
+        }
+      },
+      "channel_copy": {
+        "card_debit_6228": {
+          "tagline": "储蓄卡存款支付",
+          "risk_warning": null,
+          "cancel_consequence": "付款后取消订单将原路退回该储蓄卡，到账时间以银行处理为准。"
+        },
+        "acct_balance": {
+          "tagline": "账户已有余额",
+          "risk_warning": null,
+          "cancel_consequence": "付款后取消订单将退回账户余额，一般实时到账。"
+        },
+        "money_fund_01": {
+          "tagline": "赎回本人持有的基金份额",
+          "risk_warning": "支付即赎回基金份额，T+1日确认；货币基金不等同存款，收益随市场波动。",
+          "cancel_consequence": "取消订单后退款不会自动申购回基金，资金将退至账户余额。"
+        },
+        "credit_pay": {
+          "tagline": "授信方垫付，下月按账单还款",
+          "risk_warning": "【资金性质：消费贷款】本笔金额计入借款本金，需在账单到期日前偿还；按时全额还款本笔无额外费用，逾期按合同计收利息（年化利率以合同为准）并影响征信。",
+          "cancel_consequence": "取消订单且商户退款成功后，对应借款本金由授信方冲抵账单；若退款延迟，仍需先行还款。"
+        },
+        "installment_3": {
+          "tagline": "分3期按月偿还，含分期费用",
+          "risk_warning": "【资金性质：分期贷款】总还款额高于订单金额，页面将展示每期金额、总费用与年化利率；提前还款可能仍需支付已产生费用，逾期计收罚息并影响征信。",
+          "cancel_consequence": "取消订单且商户退款成功后，已入账分期按授信方规则冲抵或退回；分期费用是否退还以合同约定为准。"
+        }
+      },
+      "pricing": {
+        "installment_3": {
+          "annual_rate_bp": 720,
+          "method": "equal_monthly_payment",
+          "rate_description": "年化利率（单利）7.20%，按月计息"
+        }
+      },
+      "published_by": "compliance-office",
+      "published_at": "2026-09-25T09:00:00+08:00"
+    }
+  ]
+}

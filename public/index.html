@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>参考收银台 · 渠道编排与合规展示验证</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主内容</a>
+<header class="site-header">
+  <h1>参考收银台</h1>
+  <p class="subtitle">渠道编排与审计系统 · 验证支付工具与金融产品的真实展示行为</p>
+</header>
+
+<main id="main">
+
+  <section class="panel" aria-labelledby="demo-h">
+    <h2 id="demo-h">1. 演示场景（灰度按商户 × 客户端版本生效）</h2>
+    <div class="form-row">
+      <label for="user-select">用户</label>
+      <select id="user-select"></select>
+      <label for="order-select">订单</label>
+      <select id="order-select"></select>
+      <label for="version-select">客户端版本</label>
+      <select id="version-select">
+        <option value="1.0.0">1.0.0（旧版本）</option>
+        <option value="2.1.0" selected>2.1.0（灰度版本）</option>
+        <option value="3.0.0">3.0.0</option>
+      </select>
+      <button id="compose-btn" type="button">组装收银台</button>
+      <button id="reset-btn" type="button" class="secondary">重置演示数据</button>
+    </div>
+    <p class="hint">v2 规则仅对「参考演示商户 m_demo」且客户端 ≥ 2.1.0 生效；旧版商户或旧客户端仍解析到 v1。</p>
+  </section>
+
+  <div id="banner" class="banner" role="status" aria-live="polite" hidden></div>
+
+  <section id="checkout-panel" class="panel" aria-labelledby="checkout-h" hidden>
+    <h2 id="checkout-h">2. 确认付款方式</h2>
+
+    <div id="gray-evidence" class="evidence"></div>
+
+    <form id="checkout-form">
+      <fieldset id="own-funds-group" class="channel-group own-funds">
+        <legend id="own-legend"></legend>
+        <p id="own-desc" class="group-desc"></p>
+        <div id="own-channels" class="channel-options"></div>
+      </fieldset>
+
+      <fieldset id="credit-group" class="channel-group credit">
+        <legend id="credit-legend"></legend>
+        <p id="credit-desc" class="group-desc"></p>
+        <div id="credit-channels" class="channel-options"></div>
+        <p class="credit-notice" id="credit-notice">金融产品不会被默认选中。选择借款或分期渠道后，请阅读风险提示并主动勾选知悉确认。</p>
+      </fieldset>
+
+      <section class="panel inner" aria-labelledby="detail-h">
+        <h3 id="detail-h">资金性质、费用与取消后果</h3>
+        <div id="channel-detail" aria-live="polite" tabindex="-1">
+          <p class="hint">请使用 ↑ ↓ 方向键或鼠标选择一个资金渠道，此处将展示该渠道的资金性质、总费用与取消后果。</p>
+        </div>
+        <div id="ack-block" hidden>
+          <p class="ack-title"><strong>借款确认（逐次有效）</strong></p>
+          <label class="ack">
+            <input type="checkbox" id="risk-ack" />
+            <span>我已知悉：该渠道资金性质为<strong>借款</strong>，我已阅读上方风险提示、总费用（含利息）与取消后果，并<strong>主动选择</strong>使用该金融产品完成本笔支付。</span>
+          </label>
+        </div>
+      </section>
+
+      <div class="form-row actions">
+        <button id="confirm-btn" type="submit" disabled>确认支付</button>
+        <button id="callback-btn" type="button" disabled>模拟渠道扣款回调</button>
+        <button id="duplicate-callback-btn" type="button" disabled>重复发送回调（应幂等）</button>
+      </div>
+      <p id="form-error" class="error" role="alert" hidden></p>
+    </form>
+  </section>
+
+  <section id="receipt-panel" class="panel" hidden>
+    <h2>3. 扣款回执</h2>
+    <pre id="receipt-output" class="code-block"></pre>
+  </section>
+
+  <section class="panel" aria-labelledby="lab-h">
+    <h2 id="lab-h">4. 规则实验室（发布校验 · 回滚 · 冻结验证）</h2>
+    <div class="form-row wrap">
+      <button id="bad-publish-btn" type="button" class="secondary">尝试发布含「秒到账」诱导文案的规则（应拒绝）</button>
+      <button id="good-publish-btn" type="button" class="secondary">发布合规改版 v3（余额优先）</button>
+      <button id="rollback-btn" type="button" class="secondary">将规则回滚至 v1</button>
+    </div>
+    <div id="lab-output" class="lab-output" aria-live="polite"></div>
+    <p class="hint">回滚只影响之后新组装的会话；上方已确认订单的回执仍冻结在确认时的规则版本。</p>
+  </section>
+
+  <section class="panel" aria-labelledby="audit-h">
+    <h2 id="audit-h">5. 审计证据包（客服可解释 · 导出可举证）</h2>
+    <div class="form-row">
+      <button id="audit-btn" type="button" class="secondary" disabled>生成审计报告</button>
+      <a id="audit-download" class="button-link secondary" href="#" hidden download="audit-report.json">导出 JSON 审计包</a>
+    </div>
+    <div id="audit-output"></div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>本页面为合规参考实现：展示规则只决定可展示方式，不伪造余额、不替用户授信；金融产品无默认选中、无诱导文案。</p>
+</footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

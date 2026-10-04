@@ -1,10 +1,14 @@
 {
   "name": "checkout-funding-display",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "领域事件基础校验",
+  "description": "收银台渠道编排与审计系统：资金渠道类别、展示规则版本/灰度、用户主动选择、扣款回执与一致性审计",
   "scripts": {
+    "start": "node src/server.js",
     "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
