@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>参考收银台 · 资金渠道区隔与审计验证</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --ink: #1a1d21;
+    --ink-2: #4a5159;
+    --line: #d9dde3;
+    --pay: #0b5cad;
+    --pay-bg: #eef5ff;
+    --wealth: #8a5a00;
+    --wealth-bg: #fff7e6;
+    --credit: #b3261e;
+    --credit-bg: #fdeeee;
+    --ok: #146c2e;
+    --warn-bg: #fff4d6;
+    --focus: #005fcc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 16px 16px 64px; }
+  header h1 { font-size: 20px; margin: 12px 0 4px; }
+  .sub { color: var(--ink-2); margin: 0 0 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 14px 0; }
+  .panel h2 { font-size: 16px; margin: 0 0 10px; }
+  label.field { display: grid; gap: 4px; font-weight: 600; margin-bottom: 10px; }
+  input, select, button { font: inherit; }
+  input[type="text"], input[type="number"], select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; width: 100%; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  button { padding: 8px 14px; border-radius: 7px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-weight: 600; }
+  button.primary { background: var(--pay); border-color: var(--pay); color: #fff; }
+  button.danger { color: var(--credit); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* 资金分组结构性区隔：不同标题、配色、左边框，互不混淆 */
+  fieldset.group { border: 1px solid var(--line); border-radius: 10px; margin: 0 0 14px; padding: 10px 14px 14px; }
+  fieldset.group legend { font-weight: 700; padding: 2px 8px; border-radius: 5px; }
+  fieldset.pay { border-left: 5px solid var(--pay); background: linear-gradient(0deg, var(--pay-bg), var(--pay-bg)); }
+  fieldset.pay legend { background: var(--pay); color: #fff; }
+  fieldset.wealth { border-left: 5px solid var(--wealth); background: var(--wealth-bg); }
+  fieldset.wealth legend { background: var(--wealth); color: #fff; }
+  fieldset.credit { border: 2px solid var(--credit); background: var(--credit-bg); border-left-width: 6px; }
+  fieldset.credit legend { background: var(--credit); color: #fff; }
+  .group-hint { margin: 2px 0 8px; font-size: 13px; color: var(--ink-2); }
+
+  .channel { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 10px 6px; border-bottom: 1px dashed var(--line); }
+  .channel:last-child { border-bottom: none; }
+  .channel input[type="radio"] { width: 18px; height: 18px; margin-top: 4px; }
+  .ch-title { font-weight: 700; }
+  .ch-meta { font-size: 13px; color: var(--ink-2); }
+  .ch-nature { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .nature-pay { background: #d7e7fb; color: var(--pay); }
+  .nature-wealth { background: #f5e3b3; color: var(--wealth); }
+  .nature-credit { background: #f6d2cf; color: var(--credit); }
+  .risk { font-size: 13px; background: var(--warn-bg); border-left: 3px solid #b7791f; padding: 6px 10px; margin: 6px 0 0; border-radius: 0 5px 5px 0; }
+  .cost { font-size: 13px; margin-top: 4px; }
+  .cost table { border-collapse: collapse; margin-top: 4px; }
+  .cost td { padding: 1px 14px 1px 0; }
+  .cost td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .ack { margin-top: 8px; display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+  .ack input { width: 17px; height: 17px; margin-top: 3px; }
+
+  #live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .banner { border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-weight: 600; }
+  .banner.ok { background: #e5f4ea; color: var(--ok); }
+  .banner.err { background: #fbe4e2; color: var(--credit); }
+  .banner.info { background: #e7f0fd; color: var(--pay); }
+  .evidence { font-size: 12.5px; color: var(--ink-2); }
+  .evidence code { background: #eef0f3; padding: 1px 5px; border-radius: 4px; }
+  .total { font-size: 17px; font-weight: 800; }
+  pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: #101418; color: #d7e4ea; padding: 12px; border-radius: 8px; max-height: 420px; overflow: auto; }
+  .skip { position: absolute; left: -999px; top: 0; background: #fff; padding: 8px 12px; z-index: 10; }
+  .skip:focus { left: 8px; top: 8px; }
+  .tag { font-size: 12px; padding: 1px 7px; border-radius: 10px; background: #eef0f3; color: var(--ink-2); }
+  .tag.gray { background: #f3e8fd; color: #6b21a8; }
+</style>
+</head>
+<body>
+<a class="skip" href="#channels">跳转到渠道选择</a>
+<div id="live" role="status" aria-live="polite"></div>
+
+<div class="wrap">
+  <header>
+    <h1>参考收银台 · 资金渠道编排与合规审计验证</h1>
+    <p class="sub">本页用于验证真实展示行为：支付工具 / 理财 / 借贷结构性区隔；借贷与分期永不默认选中；全部操作支持键盘（Tab / 方向键 / 空格 / 回车）与读屏。</p>
+  </header>
+
+  <section class="panel" aria-labelledby="cfg-h">
+    <h2 id="cfg-h">1. 请求参数（灰度证据：商户 × 客户端版本）</h2>
+    <div class="grid">
+      <label class="field">商户
+        <select id="merchant">
+          <option value="M001">M001 示例商城</option>
+          <option value="M002">M002 灰度商户</option>
+        </select>
+      </label>
+      <label class="field">客户端版本
+        <select id="clientVersion">
+          <option value="8.3.0">8.3.0（旧版）</option>
+          <option value="8.5.0" selected>8.5.0（新版）</option>
+        </select>
+      </label>
+      <label class="field">用户
+        <select id="user">
+          <option value="user-001">user-001（有全部渠道资格）</option>
+          <option value="user-002">user-002（无信贷/理财资格）</option>
+        </select>
+      </label>
+      <label class="field">订单金额（元）
+        <input type="number" id="amount" value="199.00" step="0.01" min="0.01" />
+      </label>
+    </div>
+    <div class="btnrow">
+      <button class="primary" id="btn-compose">组装收银台（拉取真实展示）</button>
+      <span class="evidence" id="policy-info">尚未组装</span>
+    </div>
+    <p class="evidence">推荐服务模拟：会给“消费信贷”最高历史行为分。组装器结构性规定——推荐分仅允许影响<strong>支付工具组内</strong>次序，信贷不会被顶到首位。</p>
+  </section>
+
+  <section class="panel" aria-labelledby="ch-h">
+    <h2 id="ch-h">2. 选择资金渠道</h2>
+    <div id="channels"><p class="sub">点击“组装收银台”后展示渠道。</p></div>
+  </section>
+
+  <section class="panel" aria-labelledby="confirm-h">
+    <h2 id="confirm-h">3. 确认前知情信息</h2>
+    <div id="detail"><p class="sub">请先选择一个渠道。系统不会预选借贷或理财渠道。</p></div>
+    <div class="btnrow">
+      <button class="primary" id="btn-confirm" disabled>确认付款</button>
+      <button id="btn-cancel" disabled>取消订单</button>
+      <button id="btn-callback" disabled>模拟支付成功回调</button>
+      <button class="danger" id="btn-dup-callback" disabled>模拟重复回调（验证只结算一次）</button>
+    </div>
+    <div id="banner"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="admin-h">
+    <h2 id="admin-h">4. 规则管理（灰度发布 / 回滚）</h2>
+    <p class="sub">灰度发布仅命中商户 M002 × 客户端 ≥8.5.0；回滚后可重新组装<strong>新会话</strong>验证，已确认订单的选择快照不会被改写。</p>
+    <div class="btnrow">
+      <button id="btn-publish-gray">发布 v2 灰度（账户余额排支付组首位，文案合规）</button>
+      <button id="btn-publish-bad">尝试发布违规策略（信贷默认 + “秒到账”文案，应被拦截）</button>
+      <button id="btn-rollback">回滚到 v1</button>
+      <button id="btn-refresh-admin">刷新版本台账</button>
+    </div>
+    <div id="admin-out" class="evidence"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="audit-h">
+    <h2 id="audit-h">5. 审计证据</h2>
+    <div class="btnrow">
+      <button id="btn-audit">生成一致性审计报告</button>
+      <button id="btn-events">查看原始事件流</button>
+    </div>
+    <pre id="audit-out" hidden></pre>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const live = $("live");
+function announce(msg) { live.textContent = ""; setTimeout(() => (live.textContent = msg), 30); }
+function banner(kind, msg) {
+  $("banner").innerHTML = `<div class="banner ${kind}" role="alert">${msg}</div>`;
+}
+const yuan = (cents) => (cents / 100).toFixed(2);
+let SESSION = null;
+let ORDER_ID = null;
+let SELECTED = null;
+
+const GROUP_UI = {
+  PAYMENT_TOOL: { cls: "pay", legend: "支付工具 · 您的自有资金", nature: "自有资金", ncls: "nature-pay" },
+  WEALTH: { cls: "wealth", legend: "理财 · 赎回资产支付", nature: "理财赎回", ncls: "nature-wealth" },
+  CREDIT: { cls: "credit", legend: "借贷 · 借款支付，需按时偿还", nature: "借款负债", ncls: "nature-credit" },
+};
+
+async function api(path, body) {
+  const res = await fetch(path, body ? {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+  } : undefined);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function compose() {
+  const amountCents = Math.round(parseFloat($("amount").value) * 100);
+  const rec = await api("/api/checkout/compose", {
+    order_id: `ORD-${Date.now()}`,
+    merchant_id: $("merchant").value,
+    user_id: $("user").value,
+    client_version: $("clientVersion").value,
+    amount: amountCents,
+    // 推荐服务把信贷顶到最高——组装器必须结构性忽略信贷分
+    recommendations: [
+      { channel_code: "CONSUMER_CREDIT", score: 999 },
+      { channel_code: "INSTALLMENT", score: 998 },
+      { channel_code: "ACCOUNT_BALANCE", score: 95 },
+      { channel_code: "BANK_CARD", score: 90 },
+    ],
+  });
+  SESSION = rec.session_id;
+  ORDER_ID = null;
+  render(rec.snapshot, amountCents);
+  const s = rec.snapshot;
+  ORDER_ID = s.composed_for.order_id;
+  $("policy-info").innerHTML = `命中规则 <code>v${s.policy_version}</code>${s.gray ? ' <span class="tag gray">灰度命中</span>' : ' <span class="tag">基线</span>'}；会话 <code>${SESSION}</code>`;
+  announce(`收银台已按规则版本 ${s.policy_version} 组装，共 ${s.groups.reduce((n, g) => n + g.channels.length, 0)} 个可用渠道，默认项 ${s.default_channel_code ?? "无"}`);
+  $("btn-confirm").disabled = true; $("btn-cancel").disabled = false;
+  $("btn-callback").disabled = true; $("btn-dup-callback").disabled = true;
+  $("audit-out").hidden = true;
+}
+
+function render(snap, amountCents) {
+  const host = $("channels");
+  host.innerHTML = "";
+  for (const g of snap.groups) {
+    const ui = GROUP_UI[g.group];
+    const fs = document.createElement("fieldset");
+    fs.className = `group ${ui.cls}`;
+    const legend = document.createElement("legend");
+    legend.textContent = ui.legend;
+    fs.appendChild(legend);
+    const hint = document.createElement("p");
+    hint.className = "group-hint";
+    hint.textContent = {
+      PAYMENT_TOOL: "以下渠道使用您本人已有的资金，不形成负债。",
+      WEALTH: "以下渠道需要赎回您持有的理财产品；理财非存款，可能存在到账时间与净值波动。",
+      CREDIT: "以下渠道将向资金方申请借款，形成负债并可能产生利息；是否获批以资金方审批为准。本组渠道不会被默认选中。",
+    }[g.group];
+    fs.appendChild(hint);
+
+    for (const ch of g.channels) {
+      const row = document.createElement("label");
+      row.className = "channel";
+      const radio = document.createElement("input");
+      radio.type = "radio"; radio.name = "channel"; radio.value = ch.channel_code;
+      radio.setAttribute("aria-describedby", `meta-${ch.channel_code}`);
+      if (ch.channel_code === snap.default_channel_code) { radio.checked = true; radio.defaultChecked = true; }
+      radio.addEventListener("change", () => onSelect(ch, snap));
+      const body = document.createElement("span");
+      body.id = `meta-${ch.channel_code}`;
+      const bal = ch.balance ? `｜${balanceLabel(ch)}` : "";
+      body.innerHTML = `
+        <span class="ch-title">${esc(ch.label)}<span class="ch-nature"><span class="ch-nature ${ui.ncls}">${ui.nature}</span></span></span>
+        <span class="ch-meta">资金性质：${esc(ch.fund_nature)}${bal}</span>
+        <span class="cost">${costHtml(ch)}</span>
+        ${ch.risk_notice ? `<p class="risk">⚠ ${esc(ch.risk_notice)}</p>` : ""}
+        ${ch.requires_explicit_ack ? ackBox(ch) : ""}
+      `;
+      row.appendChild(radio); row.appendChild(body);
+      fs.appendChild(row);
+    }
+    host.appendChild(fs);
+  }
+  if (snap.suppressed?.length) {
+    const p = document.createElement("p");
+    p.className = "evidence";
+    p.textContent = "本次未展示：" + snap.suppressed.map((x) => `${x.channel_code}（${x.detail}）`).join("；");
+    host.appendChild(p);
+  }
+  // 触发默认项的知情信息渲染
+  const def = snap.groups.flatMap((g) => g.channels).find((c) => c.channel_code === snap.default_channel_code);
+  if (def) onSelect(def, snap);
+}
+
+function balanceLabel(ch) {
+  const b = ch.balance;
+  const label = ch.channel_code === "MONEY_FUND" ? "可用份额估算" : "可用余额";
+  return `${label} ${yuan(b.amount)} 元（来源 ${b.source}${b.note ? "：" + b.note : ""}）`;
+}
+
+function costHtml(ch) {
+  const q = ch.cost_quote;
+  const rows = q.components.map((c) => `<tr><td>${esc(c.label)}</td><td>${yuan(c.amount)} 元</td></tr>`).join("");
+  return `<table>${rows}<tr><td><strong>总费用</strong></td><td><strong>${yuan(q.total)} 元</strong></td></tr></table>`;
+}
+
+function ackBox(ch) {
+  return `<span class="ack"><input type="checkbox" id="ack-${ch.channel_code}" aria-label="借款知情确认"><span>我已知情确认：选择「${esc(ch.name)}」是向资金方<strong>借款</strong>，将形成负债并按展示利率支付利息；本勾选为我的主动操作，未被任何人预选。</span></span>`;
+}
+
+async function onSelect(ch, snap) {
+  SELECTED = ch;
+  const isCredit = ch.requires_explicit_ack;
+  const detail = $("detail");
+  detail.innerHTML = `
+    <p><strong>资金性质：</strong>${esc(ch.fund_nature)} <span class="tag ${GROUP_UI[ch.group].ncls}">${GROUP_UI[ch.group].nature}</span></p>
+    <p><strong>总费用：</strong><span class="total">${yuan(ch.cost_quote.total)} 元</span>（${ch.cost_quote.components.map((c) => esc(c.label)).join("、")}）</p>
+    ${ch.risk_notice ? `<p class="risk">⚠ ${esc(ch.risk_notice)}</p>` : ""}
+    <p class="evidence">取消后果见提交后冻结条款；确认前取消不扣款、不产生费用。本展示由规则 <code>v${snap.policy_version}</code> 生成，适用条款：${snap.applied_rules.join("、")}</p>
+  `;
+  // 选择必须落库留证；借贷渠道要求先勾选知情确认
+  if (isCredit) {
+    const ack = $(`ack-${ch.channel_code}`);
+    const ackText = ack?.parentElement.querySelector("span").textContent.trim();
+    try {
+      await api(`/api/sessions/${SESSION}/select`, { channel_code: ch.channel_code, explicit_ack: false });
+      banner("err", "后端拒绝：借贷渠道必须主动勾选知情确认后才能选择（R-PAY-006）。");
+    } catch (e) {
+      banner("info", "已拦截：请勾选下方借款知情确认框，再选择该渠道。");
+    }
+    const enable = async () => {
+      try {
+        await api(`/api/sessions/${SESSION}/select`, {
+          channel_code: ch.channel_code, explicit_ack: true, ack_text: ackText,
+        });
+        banner("ok", "已记录您的主动选择与借款知情确认。");
+        $("btn-confirm").disabled = false; $("btn-callback").disabled = true;
+        announce("已选择借款渠道并记录知情确认");
+      } catch (e2) { banner("err", e2.message); }
+    };
+    if (ack) {
+      ack.addEventListener("change", () => (ack.checked ? enable() : ($("btn-confirm").disabled = true)));
+    }
+    $("btn-confirm").disabled = true;
+  } else {
+    try {
+      await api(`/api/sessions/${SESSION}/select`, { channel_code: ch.channel_code });
+      banner("ok", `已选择「${ch.label}」（用户主动选择）。`);
+      $("btn-confirm").disabled = false;
+      announce(`已选择 ${ch.label}`);
+    } catch (e) { banner("err", e.message); }
+  }
+}
+
+async function confirmPay() {
+  if (!SELECTED) return;
+  const r = await api(`/api/sessions/${SESSION}/confirm`, {});
+  banner("ok", `已确认：${r.confirmation.channel_code}｜总费用 ${yuan(r.confirmation.cost_total)} 元｜冻结规则 v${r.confirmation.policy_version_frozen}。<br>${esc(r.confirmation.cancellation.text)}`);
+  $("btn-confirm").disabled = true; $("btn-callback").disabled = false; $("btn-dup-callback").disabled = false;
+  announce("付款已确认，等待支付回调");
+}
+
+async function cancelOrder() {
+  await api(`/api/sessions/${SESSION}/cancel`, { reason: "用户在确认前取消（页面演示）" });
+  banner("info", "订单已在确认前取消：未扣款、未产生任何费用。");
+  $("btn-confirm").disabled = true; $("btn-callback").disabled = true; $("btn-dup-callback").disabled = true;
+}
+
+async function sendCallback(dup) {
+  const amountCents = Math.round(parseFloat($("amount").value) * 100);
+  // 幂等演示：重复回调复用同一渠道流水号，后端只能形成一次结算
+  const r = await api("/api/callbacks", {
+    callback_id: `cb-${ORDER_ID}`,
+    order_id: ORDER_ID,
+    session_id: SESSION,
+    channel_code: SELECTED.channel_code,
+    status: "SUCCESS",
+    amount: amountCents,
+  });
+  if (!dup) banner(r.settled ? "ok" : "err", r.settled ? `结算成功（receipt ${r.receipt_id}），一致性校验：${r.consistency_ok ? "通过" : "失败"}。` : `未结算：${r.reason}`);
+  else banner("info", `重复回调处理：settled=${r.settled}，duplicate=${r.duplicate}（${r.reason}）——未产生第二次结算。`);
+  $("btn-dup-callback").disabled = false;
+  announce(dup ? "重复回调已被幂等忽略" : "支付已结算");
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+// ---- 管理端 ----
+function grayPolicy() {
+  return {
+    group_order: ["PAYMENT_TOOL", "WEALTH", "CREDIT"],
+    channel_rules: {
+      BANK_CARD: { rank: 90, label: "银行卡（储蓄卡）", subtitle: "使用银行存款支付" },
+      ACCOUNT_BALANCE: { rank: 100, default_selected: true, label: "账户余额", subtitle: "使用支付账户余额支付" },
+      MONEY_FUND: { rank: 80, label: "货币基金（赎回支付）", subtitle: "赎回持有的货币基金份额完成支付", risk_notice: "货币基金不是银行存款，不保证盈利；赎回金额与到账时间以基金公司确认为准。" },
+      CONSUMER_CREDIT: { rank: 70, label: "消费信贷（借款支付）", subtitle: "申请消费贷款支付，按约定期限偿还本金与利息", risk_notice: "该渠道为借款：将形成您的负债，年化利率 7.20%，是否获批以资金方审批结果为准。" },
+      INSTALLMENT: { rank: 60, label: "分期付款（借款支付）", subtitle: "申请分期贷款支付，分 12 期偿还本金与利息", risk_notice: "该渠道为借款：年化利率 8.64%，仅支持 100 元及以上订单。" },
+    },
+    compliance_rules: ["R-PAY-001", "R-PAY-002", "R-PAY-003", "R-PAY-004", "R-PAY-005", "R-PAY-006"],
+  };
+}
+function badPolicy() {
+  return {
+    group_order: ["CREDIT", "PAYMENT_TOOL", "WEALTH"],
+    channel_rules: {
+      CONSUMER_CREDIT: { rank: 100, default_selected: true, label: "消费信贷", marketing_text: "低门槛秒到账，人人可借！" },
+      BANK_CARD: { rank: 90 }, ACCOUNT_BALANCE: { rank: 80 }, MONEY_FUND: { rank: 70 }, INSTALLMENT: { rank: 60 },
+    },
+  };
+}
+
+async function refreshAdmin() {
+  const r = await fetch("/admin/policies").then((x) => x.json());
+  $("admin-out").innerHTML = r.versions.map((v) =>
+    `<div>v${v.version} ${v.is_current ? "<strong>← 当前基线</strong>" : ""} ${v.active ? "有效" : "已停用"}｜范围：${JSON.stringify(v.scope)}｜发布于 ${v.published_at}</div>`).join("");
+}
+
+$("btn-compose").addEventListener("click", () => compose().catch((e) => banner("err", e.message)));
+$("btn-confirm").addEventListener("click", () => confirmPay().catch((e) => banner("err", e.message)));
+$("btn-cancel").addEventListener("click", () => cancelOrder().catch((e) => banner("err", e.message)));
+$("btn-callback").addEventListener("click", () => sendCallback(false).catch((e) => banner("err", e.message)));
+$("btn-dup-callback").addEventListener("click", () => sendCallback(true).catch((e) => banner("err", e.message)));
+$("btn-publish-gray").addEventListener("click", async () => {
+  const r = await api("/admin/policies", { policy: grayPolicy(), scope: { merchant_ids: ["M002"], client_version: { min: "8.5.0" } }, published_by: "pm-demo" });
+  banner(r.errors?.length ? "err" : "ok", r.errors?.length ? r.errors.map((e) => `[${e.code}] ${e.message}`).join("<br>") : `v${r.version} 灰度发布成功（仅 M002 × ≥8.5.0 命中）。`);
+  refreshAdmin();
+});
+$("btn-publish-bad").addEventListener("click", async () => {
+  const r = await api("/admin/policies", { policy: badPolicy(), published_by: "pm-demo" });
+  banner("err", "发布被合规引擎拦截：<br>" + (r.errors || []).map((e) => `[${e.code}] ${e.message}`).join("<br>"));
+});
+$("btn-rollback").addEventListener("click", async () => {
+  const r = await api("/admin/policies/rollback", { to_version: 1, reason: "演示回滚：恢复 v1 排序" });
+  banner("ok", `已由 v${r.from_version} 回滚至 v${r.to_version}。新会话将使用 v1；已确认订单仍保留其冻结版本与选择。`);
+  refreshAdmin();
+});
+$("btn-refresh-admin").addEventListener("click", refreshAdmin);
+$("btn-audit").addEventListener("click", async () => {
+  const r = await fetch("/api/audit").then((x) => x.json());
+  const out = $("audit-out");
+  out.hidden = false;
+  out.textContent = JSON.stringify({
+    conclusion: r.conclusion,
+    violations: r.violations,
+    settlement_summary: r.settlement_summary,
+    sessions: r.sessions.map((s) => ({
+      order_id: s.order_id, policy_version: s.policy_version,
+      default: s.default_channel_code, selected: s.selected_channel_code,
+      confirmed: s.confirmed_channel_code, settled: s.settled_channel_code,
+      state: s.state,
+      checks: s.checks.map((c) => `${c.ok ? "✓" : "✗"} [${c.rule}] ${c.detail}`),
+    })),
+    rollback_events: r.rollback_events,
+  }, null, 2);
+});
+$("btn-events").addEventListener("click", async () => {
+  const r = await fetch("/api/events").then((x) => x.json());
+  const out = $("audit-out");
+  out.hidden = false;
+  out.textContent = JSON.stringify(r.events, null, 2);
+});
+refreshAdmin();
+</script>
+</body>
+</html>

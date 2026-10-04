@@ -19,10 +19,14 @@
     "event_type": {
       "type": "string",
       "enum": [
+        "CHANNEL_REGISTERED",
         "POLICY_PUBLISHED",
         "SESSION_COMPOSED",
         "CHANNEL_SELECTED",
         "PAYMENT_CONFIRMED",
+        "SESSION_CANCELLED",
+        "CALLBACK_RECEIVED",
+        "PAYMENT_SETTLED",
         "POLICY_ROLLED_BACK"
       ]
     },

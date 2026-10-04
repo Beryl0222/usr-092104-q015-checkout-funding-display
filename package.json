@@ -5,6 +5,7 @@
   "type": "module",
   "description": "领域事件基础校验",
   "scripts": {
+    "start": "node src/server/http-server.js --file data/events.jsonl --port 8080",
     "test": "node --test"
   }
 }
